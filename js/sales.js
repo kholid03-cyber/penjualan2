@@ -5,104 +5,49 @@ export class SalesManager {
         this.dashboard = dashboard;
     }
 
-    loadRecentSales(page = 1, limit = 10) {
-        const tbody = document.getElementById('recentSalesBody');
-        if (!tbody) return;
+    // Note: loadRecentSales is now handled by dashboard.loadRecentSales for real-time updates
 
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const salesToShow = this.dashboard.sales.slice().reverse().slice(startIndex, endIndex);
-
-        if (page === 1) {
-            tbody.innerHTML = '';
-        }
-
-        salesToShow.forEach(sale => {
-            const row = document.createElement('tr');
-            const itemsText = sale.items.map(item => `${item.name} (${item.qty})`).join(', ');
-
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${sale.date}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-medium text-gray-900">${sale.customer}</div>
-                    <div class="text-sm text-gray-500">${sale.phone}</div>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900">${itemsText}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    ${this.dashboard.formatCurrency(sale.total)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onclick="printReceipt(${sale.id})" class="text-blue-600 hover:text-blue-900">Print</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        // Add Load More button if more sales exist
-        if (endIndex < this.dashboard.sales.length) {
-            const loadMoreRow = document.createElement('tr');
-            loadMoreRow.innerHTML = `
-                <td colspan="5" class="px-6 py-4 text-center">
-                    <button id="loadMoreSales" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700" onclick="loadMoreSales(${page + 1})">
-                        Load More Sales
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(loadMoreRow);
-        }
-    }
-
-    handleNewSale(e) {
+    async handleNewSale(e) {
         e.preventDefault();
 
-        const customerName = document.getElementById('customerName').value;
+        const customerName = document.getElementById('customerName').value.trim();
         const customerPhone = document.getElementById('customerPhone').value;
 
-        if (!customerName.trim()) {
-            this.dashboard.showNotification('Please enter customer name', 'error');
+        const validationError = this.dashboard.validateSaleData(customerName, this.collectSaleItems());
+        if (validationError) {
+            this.dashboard.showNotification(validationError, 'error');
             return;
         }
 
         const saleItems = this.collectSaleItems();
-
-        if (saleItems.length === 0) {
-            this.dashboard.showNotification('Please add at least one item', 'error');
-            return;
-        }
-
         const total = saleItems.reduce((sum, item) => sum + (item.qty * item.price), 0);
 
+        // Generate unique ID
+        const id = Date.now().toString();
+
         const newSale = {
-            id: this.dashboard.sales.length + 1,
+            id: id,
             date: new Date().toISOString().split('T')[0],
             customer: customerName,
             phone: customerPhone,
             items: saleItems,
-            total: total
+            total: total,
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+            createdBy: this.dashboard.user ? this.dashboard.user.username : 'Unknown'
         };
 
-        // Update stock
-        saleItems.forEach(saleItem => {
-            const product = this.dashboard.products.find(p => p.id === saleItem.productId);
-            if (product) {
-                product.stock -= saleItem.qty;
+        // Save sale and update stock via dashboard method
+        const success = await this.dashboard.saveSale(newSale);
+        if (success) {
+            // Reset form
+            document.getElementById('saleForm').reset();
+            this.resetSaleItems();
+
+            // Ask if user wants to print receipt
+            if (confirm('Sale completed! Do you want to print the receipt?')) {
+                this.dashboard.printReceipt(id);
             }
-        });
-
-        this.dashboard.sales.push(newSale);
-        this.loadRecentSales(); // Reload with pagination
-        this.dashboard.productManager.loadProducts();
-        this.dashboard.loadReports();
-
-        // Reset form
-        document.getElementById('saleForm').reset();
-        this.resetSaleItems();
-
-        this.dashboard.showNotification('Sale processed successfully!', 'success');
-
-        // Ask if user wants to print receipt
-        if (confirm('Sale completed! Do you want to print the receipt?')) {
-            this.dashboard.printReceipt(newSale.id);
         }
     }
 
