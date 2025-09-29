@@ -33,8 +33,20 @@ class Dashboard {
         this.salesManager = null;
         this.purchaseManager = null; // Add for purchases
 
+        // Global function bindings
+        this.bindGlobalFunctions();
+
         // Unsubscribe functions for real-time listeners
         this.unsubscribers = [];
+    }
+
+    bindGlobalFunctions() {
+        // Bind manager methods to global functions for HTML onclick handlers
+        window.addCategory = () => {
+            if (this.productManager) {
+                this.productManager.addCategory();
+            }
+        };
     }
 
     async runMigrationIfNeeded() {
@@ -657,37 +669,90 @@ class Dashboard {
     }
 
     // Phase 2: Enhanced reporting with analytics and simple chart
-    loadReports() {
-        // Calculate analytics
+    calculateProfit() {
+        // Calculate total revenue
         const totalRevenue = this.sales.reduce((sum, sale) => sum + sale.total, 0);
+
+        // Calculate monthly revenue
+        const now = new Date();
         const monthlyRevenue = this.sales.filter(sale => {
             const saleDate = new Date(sale.date);
-            const now = new Date();
             return saleDate.getMonth() === now.getMonth() && saleDate.getFullYear() === now.getFullYear();
         }).reduce((sum, sale) => sum + sale.total, 0);
-        const topProduct = this.getTopProduct();
 
-        // Calculate total COGS
+        // Calculate total COGS using productId for accuracy
         let totalCOGS = 0;
         this.sales.forEach(sale => {
             sale.items.forEach(item => {
-                const product = this.products.find(p => p.name === item.name);
+                const product = this.products.find(p => p.id === item.productId);
                 if (product && product.costPrice) {
                     totalCOGS += item.qty * product.costPrice;
                 }
             });
         });
-        const profit = totalRevenue - totalCOGS;
+
+        // Calculate monthly COGS
+        let monthlyCOGS = 0;
+        this.sales.forEach(sale => {
+            if (new Date(sale.date).getMonth() === now.getMonth() && new Date(sale.date).getFullYear() === now.getFullYear()) {
+                sale.items.forEach(item => {
+                    const product = this.products.find(p => p.id === item.productId);
+                    if (product && product.costPrice) {
+                        monthlyCOGS += item.qty * product.costPrice;
+                    }
+                });
+            }
+        });
+
+        const totalProfit = totalRevenue - totalCOGS;
+        const monthlyProfit = monthlyRevenue - monthlyCOGS;
+
+        return {
+            totalRevenue,
+            monthlyRevenue,
+            totalCOGS,
+            monthlyCOGS,
+            totalProfit,
+            monthlyProfit
+        };
+    }
+
+    loadReports() {
+        const profitData = this.calculateProfit();
+        const topProduct = this.getTopProduct();
 
         // Update report cards
-        document.querySelector('#section-reports [text-3xl.font-bold.text-blue-600]').textContent = this.formatCurrency(monthlyRevenue);
-        document.querySelector('#section-reports [text-3xl.font-bold.text-green-600]').textContent = this.formatCurrency(totalRevenue);
-        if (topProduct) {
-            document.querySelector('#section-reports [text-lg.font-bold.text-purple-600]').textContent = topProduct.name;
+        const monthlyRevenueEl = document.querySelector('#section-reports [text-3xl.font-bold.text-blue-600]');
+        if (monthlyRevenueEl) {
+            monthlyRevenueEl.textContent = this.formatCurrency(profitData.monthlyRevenue);
         }
+
+        const totalRevenueEl = document.querySelector('#section-reports [text-3xl.font-bold.text-green-600]');
+        if (totalRevenueEl) {
+            totalRevenueEl.textContent = this.formatCurrency(profitData.totalRevenue);
+        }
+
+        const topProductEl = document.querySelector('#section-reports [text-lg.font-bold.text-purple-600]');
+        if (topProductEl && topProduct) {
+            topProductEl.textContent = topProduct.name;
+        }
+
         const profitElement = document.querySelector('.profit-value');
         if (profitElement) {
-            profitElement.textContent = this.formatCurrency(profit);
+            profitElement.textContent = this.formatCurrency(profitData.totalProfit);
+        }
+
+        // Add monthly profit display if element exists
+        const monthlyProfitEl = document.querySelector('.monthly-profit-value');
+        if (monthlyProfitEl) {
+            monthlyProfitEl.textContent = this.formatCurrency(profitData.monthlyProfit);
+        }
+
+        // Add profit margin display
+        const profitMarginEl = document.querySelector('.profit-margin');
+        if (profitMarginEl && profitData.totalRevenue > 0) {
+            const margin = ((profitData.totalProfit / profitData.totalRevenue) * 100).toFixed(1);
+            profitMarginEl.textContent = `${margin}%`;
         }
 
         // Render Chart.js charts
