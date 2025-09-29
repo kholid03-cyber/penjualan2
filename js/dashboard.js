@@ -490,14 +490,23 @@ class Dashboard {
             const { success } = await addDocWithId('purchases', purchase.id, purchase);
             if (success) {
                 this.purchases.unshift(purchase); // Add to beginning of array
-                // Update product stock
-                purchase.items.forEach(item => {
-                    const product = this.products.find(p => p.id === item.productId);
-                    if (product) {
-                        product.stock += item.qty;
-                    }
-                });
-                this.saveDataToStorage();
+            // Update product stock and cost price locally
+            purchase.items.forEach(item => {
+                const product = this.products.find(p => p.id === item.productId);
+                if (product) {
+                    product.stock += item.qty;
+                    product.costPrice = item.costPrice;
+                }
+            });
+            this.saveDataToStorage();
+
+            // Update product cost prices in Firestore
+            for (const item of purchase.items) {
+                const product = this.products.find(p => p.id === item.productId);
+                if (product) {
+                    await updateDocWithId('products', product.id.toString(), { costPrice: item.costPrice });
+                }
+            }
                 this.showNotification('Purchase saved successfully!', 'success');
                 return true;
             } else {
