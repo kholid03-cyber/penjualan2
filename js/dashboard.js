@@ -3,24 +3,11 @@
 class Dashboard {
     constructor() {
         this.user = null;
-        this.categories = JSON.parse(localStorage.getItem('lababil-categories')) || ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
-        this.products = [
-            { id: 1, name: 'Laptop Asus X441', price: 7500000, costPrice: 6500000, stock: 15, category: 'Electronics', minStock: 5, supplier: 'PT. Tech Supplier' },
-            { id: 2, name: 'Mouse Wireless Logitech', price: 350000, costPrice: 250000, stock: 45, category: 'Electronics', minStock: 10, supplier: 'Gadget Store' },
-            { id: 3, name: 'Keyboard Mechanical', price: 1200000, costPrice: 900000, stock: 25, category: 'Electronics', minStock: 8, supplier: 'PT. Tech Supplier' },
-            { id: 4, name: 'Monitor 24 inch', price: 2500000, costPrice: 2000000, stock: 8, category: 'Electronics', minStock: 3, supplier: 'Gadget Store' },
-            { id: 5, name: 'Headphone Sony', price: 850000, costPrice: 600000, stock: 20, category: 'Electronics', minStock: 5, supplier: 'PT. Tech Supplier' }
-        ];
-        this.sales = [
-            { id: 1, date: '2024-09-28', customer: 'John Doe', phone: '08123456789', items: [{name: 'Laptop Asus X441', qty: 1, price: 7500000}], total: 7500000, status: 'completed' },
-            { id: 2, date: '2024-09-27', customer: 'Jane Smith', phone: '08987654321', items: [{name: 'Mouse Wireless Logitech', qty: 2, price: 350000}], total: 700000, status: 'completed' },
-            { id: 3, date: '2024-09-27', customer: 'Bob Wilson', phone: '08555666777', items: [{name: 'Monitor 24 inch', qty: 1, price: 2500000}], total: 2500000, status: 'completed' }
-        ];
-        this.customers = [
-            { id: 1, name: 'John Doe', phone: '08123456789', email: 'john@example.com', address: 'Jakarta', totalPurchases: 7500000, lastPurchase: '2024-09-28' },
-            { id: 2, name: 'Jane Smith', phone: '08987654321', email: 'jane@example.com', address: 'Bandung', totalPurchases: 700000, lastPurchase: '2024-09-27' },
-            { id: 3, name: 'Bob Wilson', phone: '08555666777', email: 'bob@example.com', address: 'Surabaya', totalPurchases: 2500000, lastPurchase: '2024-09-27' }
-        ];
+        this.categories = [];
+        this.products = [];
+        this.sales = [];
+        this.purchases = [];
+        this.customers = [];
         this.settings = {
             companyName: 'Lababil Solution',
             taxRate: 11,
@@ -31,24 +18,58 @@ class Dashboard {
         this.notifications = [];
         this.isLoading = false;
 
+        // Cache for offline support
+        this.localCache = {
+            categories: null,
+            products: null,
+            sales: null,
+            purchases: null,
+            customers: null,
+            settings: null
+        };
+
         // Managers will be loaded dynamically
         this.productManager = null;
         this.salesManager = null;
+        this.purchaseManager = null; // Add for purchases
+
+        // Unsubscribe functions for real-time listeners
+        this.unsubscribers = [];
     }
 
     async init() {
+        // Check Firebase configuration
+        if (!isFirebaseConfigured()) {
+            console.error('Firebase not configured properly');
+            this.showNotification('Firebase configuration error. Please check js/firebase.js', 'error');
+            // Fallback to local data if Firebase not ready
+            this.loadLocalFallbackData();
+            return;
+        }
+
         this.loadUserData();
-        this.loadCategories();
-        this.applyRoleBasedAccess(); // Apply role restrictions first
+        await this.runMigrationIfNeeded();
+        await this.applyRoleBasedAccess(); // Apply role restrictions first
 
         // Load managers dynamically for code splitting
         await this.loadManagers();
 
-        this.loadProducts();
+        // Load data from Firestore with loading states
+        this.showLoading('section-dashboard');
+        await Promise.all([
+            this.loadCategories(),
+            this.loadProducts(),
+            this.loadSales(),
+            this.loadPurchases(),
+            this.loadCustomers(),
+            this.loadSettings()
+        ]);
+        this.hideLoading('section-dashboard');
+
         this.loadRecentSales();
         this.loadRecentPurchases();
         this.loadReports(); // Phase 2: Load enhanced reports
-        this.setupRealTimeSync(); // Phase 2: Real-time sync
+        this.setupRealTimeSync(); // Phase 2: Real-time sync with Firestore listeners
         this.setupEventListeners();
         this.checkLowStock(); // Phase 2: Check for low stock on init
     }
