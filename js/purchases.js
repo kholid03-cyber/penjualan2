@@ -5,102 +5,48 @@ export class PurchaseManager {
         this.dashboard = dashboard;
     }
 
-    loadRecentPurchases(page = 1, limit = 10) {
-        const tbody = document.getElementById('recentPurchasesBody');
-        if (!tbody) return;
+    // Note: loadRecentPurchases is now handled by dashboard.loadRecentPurchases for real-time updates
 
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const purchasesToShow = this.dashboard.purchases.slice().reverse().slice(startIndex, endIndex);
-
-        if (page === 1) {
-            tbody.innerHTML = '';
-        }
-
-        purchasesToShow.forEach(purchase => {
-            const row = document.createElement('tr');
-            const itemsText = purchase.items.map(item => `${item.name} (${item.qty})`).join(', ');
-
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${purchase.date}</td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-medium text-gray-900">${purchase.supplier}</div>
-                    <div class="text-sm text-gray-500">${purchase.phone}</div>
-                </td>
-                <td class="px-6 py-4 text-sm text-gray-900">${itemsText}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900 font-medium">
-                    ${purchase.totalItems}
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        // Add Load More button if more purchases exist
-        if (endIndex < this.dashboard.purchases.length) {
-            const loadMoreRow = document.createElement('tr');
-            loadMoreRow.innerHTML = `
-                <td colspan="4" class="px-6 py-4 text-center">
-                    <button id="loadMorePurchases" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700" onclick="loadMorePurchases(${page + 1})">
-                        Load More Purchases
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(loadMoreRow);
-        }
-    }
-
-    handleNewPurchase(e) {
+    async handleNewPurchase(e) {
         e.preventDefault();
 
         const supplierName = document.getElementById('supplierName').value.trim();
         const supplierPhone = document.getElementById('supplierPhone').value;
 
-        if (!supplierName) {
-            this.dashboard.showNotification('Please enter supplier name', 'error');
-            return;
-        }
-
         const purchaseItems = this.collectPurchaseItems();
 
-        if (purchaseItems.length === 0) {
-            this.dashboard.showNotification('Please add at least one item', 'error');
+        const validationError = this.dashboard.validatePurchaseData(supplierName, purchaseItems);
+        if (validationError) {
+            this.dashboard.showNotification(validationError, 'error');
             return;
         }
 
         const totalItems = purchaseItems.reduce((sum, item) => sum + item.qty, 0);
         const totalCost = purchaseItems.reduce((sum, item) => sum + (item.qty * item.costPrice), 0);
 
+        // Generate unique ID
+        const id = Date.now().toString();
+
         const newPurchase = {
-            id: this.dashboard.purchases.length + 1,
+            id: id,
             date: new Date().toISOString().split('T')[0],
             supplier: supplierName,
             phone: supplierPhone,
             items: purchaseItems,
             totalItems: totalItems,
-            totalCost: totalCost
+            totalCost: totalCost,
+            status: 'completed',
+            createdAt: new Date().toISOString(),
+            createdBy: this.dashboard.user ? this.dashboard.user.username : 'Unknown'
         };
 
-        // Update stock and costPrice
-        purchaseItems.forEach(purchaseItem => {
-            const product = this.dashboard.products.find(p => p.id === purchaseItem.productId);
-            if (product) {
-                product.stock += purchaseItem.qty;
-                if (purchaseItem.costPrice > (product.costPrice || 0)) {
-                    product.costPrice = purchaseItem.costPrice;
-                }
-            }
-        });
-
-        this.dashboard.purchases.push(newPurchase);
-        this.loadRecentPurchases(); // Reload with pagination
-        this.dashboard.productManager.loadProducts();
-        this.dashboard.loadReports();
-
-        // Reset form
-        document.getElementById('purchaseForm').reset();
-
-        this.dashboard.showNotification('Purchase processed successfully!', 'success');
-        this.dashboard.saveDataToStorage();
+        // Save purchase and update stock via dashboard method
+        const success = await this.dashboard.savePurchase(newPurchase);
+        if (success) {
+            // Reset form
+            document.getElementById('purchaseForm').reset();
+            this.resetPurchaseItems();
+        }
     }
 
     collectPurchaseItems() {
@@ -157,7 +103,25 @@ export class PurchaseManager {
         this.dashboard.productManager.updateProductSelects();
     }
 
+    resetPurchaseItems() {
+        const container = document.getElementById('purchaseItems');
+        if (!container) return;
 
+        container.innerHTML = `
+            <div class="purchase-item bg-gray-50 p-4 rounded-md">
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                    <select class="product-select border-gray-300 rounded-md">
+                        <option value="">Select Product</option>
+                    </select>
+                    <input type="number" placeholder="Quantity" class="quantity-input border-gray-300 rounded-md" min="1" value="1">
+                    <input type="number" placeholder="Cost Price (Rp)" class="cost-price-input border-gray-300 rounded-md" min="0" value="0">
+                    <button type="button" class="remove-item bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600">Remove</button>
+                </div>
+            </div>
+        `;
+        this.dashboard.productManager.updateProductSelects();
+        this.updatePurchaseTotal();
+    }
 
     updateTotals() {
         this.updatePurchaseTotal();
