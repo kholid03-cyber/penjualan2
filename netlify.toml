@@ -15,7 +15,6 @@
   from = "/*"
   to = "/index.html"
   status = 200
-  conditions = {Role = ["guest"]}
 
 [[redirects]]
   # API routes ke Netlify Functions
