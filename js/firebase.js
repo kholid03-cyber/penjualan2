@@ -10,12 +10,12 @@ const firebaseConfig = {
   // 4. Scroll ke bagian "Your apps" > Web app
   // 5. Copy konfigurasi dan paste di sini
 
-  apiKey: "your-api-key", // Ganti dengan apiKey asli
-  authDomain: "your-project.firebaseapp.com", // Ganti dengan authDomain asli
-  projectId: "your-project-id", // Ganti dengan projectId asli
-  storageBucket: "your-project.appspot.com", // Ganti dengan storageBucket asli
-  messagingSenderId: "123456789", // Ganti dengan messagingSenderId asli
-  appId: "your-app-id" // Ganti dengan appId asli
+  apiKey: "AIzaSyBMVecv_dcp6bsSLa1AXZbNrTbwmgWFca8", // Ganti dengan apiKey asli
+  authDomain: "penjualan2-2c10a.firebaseapp.com", // Ganti dengan authDomain asli
+  projectId: "penjualan2-2c10a", // Ganti dengan projectId asli
+  storageBucket: "penjualan2-2c10a.firebasestorage.app", // Ganti dengan storageBucket asli
+  messagingSenderId: "901549145903", // Ganti dengan messagingSenderId asli
+  appId: "1:901549145903:web:e5628d36b2e0013b31abda" // Ganti dengan appId asli
 };
 
 // Check if Firebase config is properly set
@@ -45,3 +45,4 @@ if (isFirebaseConfigured()) {
 // Export services (will be null if not configured)
 export { auth, db };
 export default app;
+
