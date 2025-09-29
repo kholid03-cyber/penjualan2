@@ -81,12 +81,12 @@ export class SalesManager {
         if (select.value) {
             const product = this.dashboard.products.find(p => p.id === parseInt(select.value));
             if (product) {
+                // Set default price but allow manual editing
                 priceInput.value = product.price;
-                priceInput.removeAttribute('readonly'); // Allow editing
             }
         } else {
-            priceInput.value = '';
-            priceInput.setAttribute('readonly', true);
+            // Keep current value when no product selected, allowing manual entry
+            // priceInput.value = '';
         }
 
         this.updateSaleTotal();
@@ -121,6 +121,21 @@ export class SalesManager {
 
         saleItemsContainer.appendChild(itemDiv);
         this.dashboard.productManager.updateProductSelects();
+
+        // Add event listeners for dynamic total updates
+        this.addDynamicUpdateListeners(itemDiv);
+    }
+
+    addDynamicUpdateListeners(itemDiv) {
+        const priceInput = itemDiv.querySelector('.price-input');
+        const qtyInput = itemDiv.querySelector('.quantity-input');
+
+        if (priceInput) {
+            priceInput.addEventListener('input', () => this.updateSaleTotal());
+        }
+        if (qtyInput) {
+            qtyInput.addEventListener('input', () => this.updateSaleTotal());
+        }
     }
 
     removeSaleItem(button) {
