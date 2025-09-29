@@ -1,33 +1,26 @@
-import { auth } from './firebase.js';
-import {
-    signInWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged,
-    createUserWithEmailAndPassword,
-    updateProfile
-} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+// Temporarily use local auth until Firebase is configured
+// import { auth } from './firebase.js';
+// import {
+//     signInWithEmailAndPassword,
+//     signOut,
+//     onAuthStateChanged,
+//     createUserWithEmailAndPassword,
+//     updateProfile
+// } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 class AuthManager {
     constructor() {
         this.currentUser = null;
-        this.isReady = false;
-        this.initAuthListener();
+        this.isReady = true; // Local auth is always ready
+        this.loadUserFromStorage();
     }
 
-    // Initialize Firebase Auth state listener
-    initAuthListener() {
-        onAuthStateChanged(auth, (user) => {
-            this.currentUser = user;
-            if (user) {
-                // User is signed in
-                console.log('User signed in:', user.email);
-                this.handleAuthSuccess(user);
-            } else {
-                // User is signed out
-                console.log('User signed out');
-                this.handleAuthSignOut();
-            }
-        });
+    // Load user from localStorage on init
+    loadUserFromStorage() {
+        const userData = localStorage.getItem('userData');
+        if (userData) {
+            this.currentUser = JSON.parse(userData);
+        }
     }
 
     // Handle successful authentication
@@ -68,19 +61,39 @@ class AuthManager {
         return 'user'; // Default role
     }
 
-    // Sign in with email and password
-    async signIn(email, password) {
+    // Sign in with username and password using Netlify function
+    async signIn(username, password) {
         try {
-            // Check if Firebase is available
-            if (!auth || !auth.app) {
-                return { success: false, error: 'Firebase belum dikonfigurasi. Silakan setup Firebase terlebih dahulu.' };
-            }
+            const response = await fetch('/.netlify/functions/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ username, password })
+            });
 
-            const userCredential = await signInWithEmailAndPassword(auth, email, password);
-            return { success: true, user: userCredential.user };
+            const data = await response.json();
+
+            if (data.success) {
+                // Create user object from response
+                const user = {
+                    uid: data.user.username,
+                    email: data.user.username + '@local.auth',
+                    displayName: data.user.name,
+                    role: data.user.role,
+                    token: data.token,
+                    loginTime: new Date().toISOString()
+                };
+
+                this.currentUser = user;
+                this.handleAuthSuccess(user);
+                return { success: true, user: user };
+            } else {
+                return { success: false, error: data.error || 'Login failed' };
+            }
         } catch (error) {
             console.error('Sign in error:', error);
-            return { success: false, error: this.getErrorMessage(error.code) };
+            return { success: false, error: 'Network error. Please check your connection.' };
         }
     }
 
@@ -100,7 +113,9 @@ class AuthManager {
     // Sign out
     async logout() {
         try {
-            await signOut(auth);
+            this.currentUser = null;
+            localStorage.removeItem('userData');
+            this.handleAuthSignOut();
             return { success: true };
         } catch (error) {
             console.error('Sign out error:', error);
