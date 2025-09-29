@@ -1,0 +1,54 @@
+# netlify.toml
+[build]
+  # Build command (jika menggunakan build process)
+  # command = "npm run build"
+  
+  # Publish directory
+  publish = "."
+  
+  # Functions directory
+  functions = "netlify/functions"
+
+# Redirect rules
+[[redirects]]
+  # SPA fallback - redirect semua routes ke index.html
+  from = "/*"
+  to = "/index.html"
+  status = 200
+  conditions = {Role = ["guest"]}
+
+[[redirects]]
+  # API routes ke Netlify Functions
+  from = "/api/*"
+  to = "/.netlify/functions/:splat"
+  status = 200
+
+# Headers untuk security
+[[headers]]
+  for = "/*"
+  [headers.values]
+    # Security headers
+    X-Frame-Options = "DENY"
+    X-XSS-Protection = "1; mode=block"
+    X-Content-Type-Options = "nosniff"
+    Referrer-Policy = "strict-origin-when-cross-origin"
+    
+    # Cache control
+    Cache-Control = "public, max-age=3600"
+
+[[headers]]
+  for = "*.js"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+[[headers]]
+  for = "*.css"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000"
+
+# Environment variables (contoh)
+[context.production.environment]
+  NODE_ENV = "production"
+  
+[context.deploy-preview.environment]
+  NODE_ENV = "development"

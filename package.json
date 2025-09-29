@@ -1,0 +1,32 @@
+{
+  "name": "lababil-sales-system-netlify",
+  "version": "2.0.0",
+  "description": "Digital Sales System for Lababil Solution - Netlify Version",
+  "main": "index.html",
+  "scripts": {
+    "dev": "node dev-server.js",
+    "start": "node dev-server.js",
+    "test": "node test-function.js",
+    "deploy": "echo Use manual deployment to Netlify",
+    "build": "echo Build complete - Static site"
+  },
+  "keywords": [
+    "sales",
+    "management",
+    "digital",
+    "system",
+    "netlify"
+  ],
+  "author": "Lababil Solution",
+  "license": "MIT",
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "dependencies": {
+    "chart.js": "^4.5.0",
+    "firebase": "^10.7.1"
+  },
+  "devDependencies": {
+    "netlify-cli": "^17.0.0"
+  }
+}

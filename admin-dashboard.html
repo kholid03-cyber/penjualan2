@@ -1,0 +1,635 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Dashboard - Lababil Sales System</title>
+    <meta name="description" content="Admin Dashboard for Lababil Sales System">
+    <meta name="theme-color" content="#3b82f6">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Lababil Admin">
+    <link rel="manifest" href="manifest.json">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="css/style.css">
+</head>
+<body class="min-h-screen bg-gray-50">
+    <!-- Navigation -->
+    <nav class="bg-white shadow-sm border-b">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between items-center h-16">
+                <div class="flex items-center">
+                    <div class="flex-shrink-0">
+                        <h1 class="text-xl font-bold text-gray-900">Lababil Sales System</h1>
+                    </div>
+                    <div class="ml-10">
+                        <span class="text-sm text-gray-600">Admin Dashboard</span>
+                    </div>
+                </div>
+                
+                <div class="flex items-center space-x-4">
+                    <span id="userWelcome" class="text-sm text-gray-700">Welcome, Admin</span>
+                    <button 
+                        onclick="logout()" 
+                        class="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-md text-sm font-medium transition-colors"
+                    >
+                        Logout
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Side Navigation -->
+    <div class="flex">
+        <div class="w-64 bg-white shadow-sm min-h-screen">
+            <nav class="mt-5 px-2">
+                <div class="space-y-1">
+                    <a href="#" onclick="showSection('dashboard')" id="nav-dashboard" class="nav-item bg-gray-100 text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-500 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2H5a2 2 0 00-2-2z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 5a2 2 0 012-2h2a2 2 0 012 2v2H8V5z"/>
+                        </svg>
+                        Dashboard
+                    </a>
+                    
+                    <a href="#" onclick="showSection('products')" id="nav-products" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                        </svg>
+                        Manage Products
+                    </a>
+                    
+                    <a href="#" onclick="showSection('sales')" id="nav-sales" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                        </svg>
+                        New Sale
+                    </a>
+
+                    <a href="#" onclick="showSection('purchases')" id="nav-purchases" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10M4 7v10l8 4"/>
+                        </svg>
+                        Stock In
+                    </a>
+                    
+                    <a href="#" onclick="showSection('reports')" id="nav-reports" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2-2z"/>
+                        </svg>
+                        View Reports
+                    </a>
+                    
+                    <a href="#" onclick="showSection('settings')" id="nav-settings" class="nav-item text-gray-600 hover:bg-gray-50 hover:text-gray-900 group flex items-center px-2 py-2 text-sm font-medium rounded-md">
+                        <svg class="text-gray-400 mr-3 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"/>
+                        </svg>
+                        Settings
+                    </a>
+                </div>
+            </nav>
+        </div>
+
+        <!-- Main Content -->
+        <div class="flex-1 p-6">
+            <!-- Dashboard Section -->
+            <div id="section-dashboard" class="section active">
+                <!-- Success Message -->
+                <div class="mb-6 bg-green-50 border border-green-200 rounded-md p-4">
+                    <div class="flex">
+                        <div class="flex-shrink-0">
+                            <svg class="h-5 w-5 text-green-400" fill="currentColor" viewBox="0 0 20 20">
+                                <path fill-rule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clip-rule="evenodd"/>
+                            </svg>
+                        </div>
+                        <div class="ml-3">
+                            <p class="text-sm font-medium text-green-800">
+                                🎉 Login berhasil! Selamat datang di Admin Dashboard
+                            </p>
+                        </div>
+                    </div>
+                </div>
+
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Dashboard Overview</h2>
+
+                <!-- Dashboard Stats -->
+                <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Total Sales</dt>
+                                        <dd class="text-lg font-medium text-gray-900">Rp 15,240,000</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Products</dt>
+                                        <dd class="text-lg font-medium text-gray-900">127</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0zm6 3a2 2 0 11-4 0 2 2 0 014 0zM7 10a2 2 0 11-4 0 2 2 0 014 0z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Customers</dt>
+                                        <dd class="text-lg font-medium text-gray-900">89</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-white overflow-hidden shadow rounded-lg">
+                        <div class="p-5">
+                            <div class="flex items-center">
+                                <div class="flex-shrink-0">
+                                    <svg class="h-6 w-6 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v4a2 2 0 01-2 2h-2a2 2 0 00-2-2z"/>
+                                    </svg>
+                                </div>
+                                <div class="ml-5 w-0 flex-1">
+                                    <dl>
+                                        <dt class="text-sm font-medium text-gray-500 truncate">Orders</dt>
+                                        <dd class="text-lg font-medium text-gray-900">456</dd>
+                                    </dl>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Session Info -->
+                <div class="bg-white shadow rounded-lg">
+                    <div class="px-4 py-5 sm:p-6">
+                        <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">Session Information</h3>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <div>User: <span id="sessionUsername" class="font-medium">-</span></div>
+                            <div>Role: <span id="sessionRole" class="font-medium">-</span></div>
+                            <div>Login Time: <span id="loginTime" class="font-medium">-</span></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Products Section -->
+            <div id="section-products" class="section hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Manage Products</h2>
+                
+                <!-- Add Product Button -->
+                <div class="mb-6">
+                    <button onclick="showAddProductModal()" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-md font-medium">
+                        ➕ Add New Product
+                    </button>
+                </div>
+
+                <!-- Products Table -->
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Product</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Price</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Stock</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Category</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="productsTableBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Products will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Sales Section -->
+            <div id="section-sales" class="section hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">New Sale</h2>
+                
+                <div class="bg-white shadow rounded-lg p-6">
+                    <form id="saleForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Customer Name</label>
+                                <input type="text" id="customerName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Customer Phone</label>
+                                <input type="tel" id="customerPhone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+                        
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Products</label>
+                            <div id="saleItems" class="space-y-4">
+                                <div class="sale-item bg-gray-50 p-4 rounded-md">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <select class="product-select border-gray-300 rounded-md">
+                                            <option value="">Select Product</option>
+                                        </select>
+                                        <input type="number" placeholder="Quantity" class="quantity-input border-gray-300 rounded-md" min="1" value="1">
+                                        <input type="number" placeholder="Price" class="price-input border-gray-300 rounded-md">
+                                        <button type="button" class="remove-item bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addSaleItem()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Add Item</button>
+                        </div>
+                        
+                        <div class="border-t pt-4">
+                            <div class="text-right">
+                                <div class="text-xl font-bold">Total: Rp <span id="saleTotal">0</span></div>
+                            </div>
+                        </div>
+                        
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400">Cancel</button>
+                            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">Process Sale</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <!-- Purchases Section -->
+            <div id="section-purchases" class="section hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Stock In</h2>
+
+                <div class="bg-white shadow rounded-lg p-6">
+                    <form id="purchaseForm" class="space-y-6">
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Supplier Name</label>
+                                <input type="text" id="supplierName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" required>
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Supplier Phone</label>
+                                <input type="tel" id="supplierPhone" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700 mb-2">Products</label>
+                            <div id="purchaseItems" class="space-y-4">
+                                <div class="purchase-item bg-gray-50 p-4 rounded-md">
+                                    <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                                        <select class="product-select border-gray-300 rounded-md">
+                                            <option value="">Select Product</option>
+                                        </select>
+                                        <input type="number" placeholder="Quantity" class="quantity-input border-gray-300 rounded-md" min="1" value="1">
+                                        <input type="number" placeholder="Cost Price" class="cost-price-input border-gray-300 rounded-md" min="0" value="0">
+                                        <button type="button" class="remove-item bg-red-500 text-white px-3 py-2 rounded-md hover:bg-red-600">Remove</button>
+                                    </div>
+                                </div>
+                            </div>
+                            <button type="button" onclick="addPurchaseItem()" class="mt-4 bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Add Item</button>
+                        </div>
+
+                        <div class="border-t pt-4">
+                            <div class="text-right">
+                                <div class="text-xl font-bold">Total Cost: Rp <span id="purchaseTotal">0</span></div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-end space-x-4">
+                            <button type="button" class="bg-gray-300 text-gray-700 px-6 py-2 rounded-md hover:bg-gray-400">Cancel</button>
+                            <button type="submit" class="bg-blue-600 text-white px-6 py-2 rounded-md hover:bg-blue-700">Process Purchase</button>
+                        </div>
+                    </form>
+                </div>
+
+                <!-- Recent Purchases Table -->
+                <div class="bg-white shadow rounded-lg overflow-hidden mt-8">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Recent Purchases</h3>
+                    </div>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Supplier</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Products</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total Items</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentPurchasesBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Recent purchases will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+                <!-- Reports Section -->
+                <div id="section-reports" class="section hidden">
+                    <h2 class="text-2xl font-bold text-gray-900 mb-6">View Reports</h2>
+                    
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Daily Sales</h3>
+                            <div class="text-3xl font-bold text-blue-600">Rp 1,250,000</div>
+                            <p class="text-sm text-gray-500">Today's total sales</p>
+                        </div>
+                        
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Monthly Sales</h3>
+                            <div class="text-3xl font-bold text-green-600">Rp 15,240,000</div>
+                            <p class="text-sm text-gray-500">This month's total</p>
+                        </div>
+                        
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Top Product</h3>
+                            <div class="text-lg font-bold text-purple-600">Laptop Asus</div>
+                            <p class="text-sm text-gray-500">Best selling item</p>
+                        </div>
+
+                        <div class="bg-white shadow rounded-lg p-6 profit-card">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Total Profit</h3>
+                            <div class="text-3xl font-bold text-green-600 profit-value">Rp 0</div>
+                            <p class="text-sm text-gray-500">Overall profit (Revenue - COGS)</p>
+                        </div>
+                    </div>
+
+                    <!-- Charts Section -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Product Performance (Sales by Product)</h3>
+                            <canvas id="productPerformanceChart" height="200"></canvas>
+                        </div>
+                        <div class="bg-white shadow rounded-lg p-6">
+                            <h3 class="text-lg font-medium text-gray-900 mb-4">Inventory Levels (Stock by Category)</h3>
+                            <canvas id="inventoryChart" height="200"></canvas>
+                        </div>
+                    </div>
+
+                <!-- Recent Sales Table -->
+                <div class="bg-white shadow rounded-lg overflow-hidden">
+                    <div class="px-6 py-4 border-b border-gray-200">
+                        <h3 class="text-lg font-medium text-gray-900">Recent Sales</h3>
+                    </div>
+                    <table class="min-w-full divide-y divide-gray-200">
+                        <thead class="bg-gray-50">
+                            <tr>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Date</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Customer</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Products</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Total</th>
+                                <th class="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Action</th>
+                            </tr>
+                        </thead>
+                        <tbody id="recentSalesBody" class="bg-white divide-y divide-gray-200">
+                            <!-- Recent sales will be loaded here -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Settings Section -->
+            <div id="section-settings" class="section hidden">
+                <h2 class="text-2xl font-bold text-gray-900 mb-6">Settings</h2>
+                
+                <div class="space-y-6">
+                    <!-- Profile Settings -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Profile Settings</h3>
+                        <div class="space-y-4">
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Full Name</label>
+                                <input type="text" id="fullName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" value="Administrator">
+                            </div>
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Email</label>
+                                <input type="email" id="email" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" value="admin@lababil.com">
+                            </div>
+                            <button class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Update Profile</button>
+                        </div>
+                    </div>
+
+                    <!-- System Settings -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">System Settings</h3>
+                        <div class="space-y-4">
+                            <div class="flex items-center justify-between">
+                                <div>
+                                    <label class="text-sm font-medium text-gray-700">Dark Mode</label>
+                                    <p class="text-sm text-gray-500">Toggle dark/light theme</p>
+                                </div>
+                                <button id="darkModeToggle" onclick="toggleDarkMode()" class="bg-gray-200 relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2">
+                                    <span class="translate-x-0 pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out"></span>
+                                </button>
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Company Name</label>
+                                <input type="text" id="companyName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" value="Lababil Solution">
+                            </div>
+                            
+                            <div>
+                                <label class="block text-sm font-medium text-gray-700">Tax Rate (%)</label>
+                                <input type="number" id="taxRate" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500" value="11" min="0" max="100">
+                            </div>
+                            
+                            <button class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Save Settings</button>
+                        </div>
+                    </div>
+
+                    <!-- Backup & Restore -->
+                    <div class="bg-white shadow rounded-lg p-6">
+                        <h3 class="text-lg font-medium text-gray-900 mb-4">Backup & Restore</h3>
+                        <div class="space-y-4">
+                            <div class="flex space-x-4">
+                                <button onclick="exportData()" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Export Data</button>
+                                <button onclick="importData()" class="bg-green-600 text-white px-4 py-2 rounded-md hover:bg-green-700">Import Data</button>
+                            </div>
+                            <p class="text-sm text-gray-500">Export your data for backup or import from a previous backup.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Add Product Modal -->
+    <div id="addProductModal" class="fixed inset-0 bg-gray-600 bg-opacity-50 hidden items-center justify-center z-50">
+        <div class="bg-white rounded-lg p-6 w-full max-w-md">
+            <h3 class="text-lg font-medium text-gray-900 mb-4">Add New Product</h3>
+            <form id="addProductForm" class="space-y-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Product Name</label>
+                    <input type="text" id="productName" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Price</label>
+                    <input type="number" id="productPrice" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Stock</label>
+                    <input type="number" id="productStock" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700">Category</label>
+                    <select id="productCategory" class="mt-1 block w-full border-gray-300 rounded-md shadow-sm" required>
+                        <option value="">Select Category</option>
+                        <option value="Electronics">Electronics</option>
+                        <option value="Clothing">Clothing</option>
+                        <option value="Books">Books</option>
+                        <option value="Home">Home & Garden</option>
+                        <option value="Sports">Sports</option>
+                    </select>
+                </div>
+                <div class="mt-2 text-right">
+                    <button type="button" onclick="addCategory()" class="text-sm text-blue-600 hover:text-blue-800">+ Add New Category</button>
+                </div>
+                <div class="flex justify-end space-x-4">
+                    <button type="button" onclick="hideAddProductModal()" class="bg-gray-300 text-gray-700 px-4 py-2 rounded-md hover:bg-gray-400">Cancel</button>
+                    <button type="submit" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700">Add Product</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script type="module" src="js/auth.js"></script>
+    <script type="module" src="js/dashboard.js"></script>
+    <script>
+        // Initialize dashboard
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check authentication
+            if (!window.auth || !window.auth.requireAuth()) {
+                // For testing, bypass auth or simulate login
+                window.auth = {
+                    requireAuth: () => true,
+                    getUser: () => ({ username: 'admin', role: 'admin', name: 'Admin' }),
+                    getToken: () => btoa(JSON.stringify({ loginTime: new Date().toISOString() }))
+                };
+                return true;
+            }
+
+            // Load user data
+            const user = window.auth.getUser();
+            if (user) {
+                document.getElementById('userWelcome').textContent = `Welcome, ${user.name || user.username}`;
+                document.getElementById('sessionUsername').textContent = user.username;
+                document.getElementById('sessionRole').textContent = user.role;
+                
+                // Get login time from token
+                const token = window.auth.getToken();
+                try {
+                    const tokenData = JSON.parse(atob(token));
+                    const loginTime = new Date(tokenData.loginTime).toLocaleString();
+                    document.getElementById('loginTime').textContent = loginTime;
+                } catch (e) {
+                    document.getElementById('loginTime').textContent = new Date().toLocaleString();
+                }
+            }
+
+            // Initialize dashboard functionality
+            initializeDashboard();
+
+            // Role-based access control
+            if (user) {
+                applyRoleBasedAccess(user.role);
+            }
+        });
+
+        // Function to apply role-based access control
+        function applyRoleBasedAccess(role) {
+            const navItems = {
+                dashboard: document.getElementById('nav-dashboard'),
+                products: document.getElementById('nav-products'),
+                sales: document.getElementById('nav-sales'),
+                purchases: document.getElementById('nav-purchases'),
+                reports: document.getElementById('nav-reports'),
+                settings: document.getElementById('nav-settings')
+            };
+
+            const sections = {
+                dashboard: document.getElementById('section-dashboard'),
+                products: document.getElementById('section-products'),
+                sales: document.getElementById('section-sales'),
+                purchases: document.getElementById('section-purchases'),
+                reports: document.getElementById('section-reports'),
+                settings: document.getElementById('section-settings')
+            };
+
+            // Hide all navigation items and sections first
+            Object.values(navItems).forEach(item => {
+                if (item) item.style.display = 'none';
+            });
+
+            // Show sections based on role
+            if (role === 'kasir') {
+                // Kasir can only access sales
+                if (navItems.sales) navItems.sales.style.display = 'block';
+                if (navItems.dashboard) navItems.dashboard.style.display = 'block'; // Allow dashboard view
+                if (sections.sales) sections.sales.style.display = 'block';
+                if (sections.dashboard) sections.dashboard.style.display = 'block';
+
+                // Auto-show sales section for kasir
+                showSection('sales');
+
+            } else if (role === 'admin1') {
+                // Admin1 can only access purchases
+                if (navItems.purchases) navItems.purchases.style.display = 'block';
+                if (navItems.dashboard) navItems.dashboard.style.display = 'block'; // Allow dashboard view
+                if (sections.purchases) sections.purchases.style.display = 'block';
+                if (sections.dashboard) sections.dashboard.style.display = 'block';
+
+                // Auto-show purchases section for admin1
+                showSection('purchases');
+
+            } else if (role === 'admin') {
+                // Admin can access everything
+                Object.values(navItems).forEach(item => {
+                    if (item) item.style.display = 'block';
+                });
+                // Show dashboard by default
+                showSection('dashboard');
+            }
+        }
+    </script>
+
+    <!-- Service Worker Registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('Service Worker registered: ', registration);
+                    })
+                    .catch(registrationError => {
+                        console.log('Service Worker registration failed: ', registrationError);
+                    });
+            });
+        }
+    </script>
+</body>
+</html>
