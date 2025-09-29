@@ -37,6 +37,85 @@ class Dashboard {
         this.unsubscribers = [];
     }
 
+    async runMigrationIfNeeded() {
+        // Check if migration has been done
+        const migrationDone = localStorage.getItem('lababil-migration-done');
+        if (migrationDone) return;
+
+        console.log('Running data migration to Firestore...');
+        this.showNotification('Migrating data to cloud storage...', 'info');
+
+        try {
+            // Migrate localStorage data to Firestore
+            const localProducts = JSON.parse(localStorage.getItem('lababil-products')) || [];
+            const localSales = JSON.parse(localStorage.getItem('lababil-sales')) || [];
+            const localPurchases = JSON.parse(localStorage.getItem('lababil-purchases')) || [];
+            const localCategories = JSON.parse(localStorage.getItem('lababil-categories')) || ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
+
+            // Migrate categories
+            for (const category of localCategories) {
+                await addDocWithId('categories', category, { name: category });
+            }
+
+            // Migrate products
+            for (const product of localProducts) {
+                await addDocWithId('products', product.id.toString(), product);
+            }
+
+            // Migrate sales
+            for (const sale of localSales) {
+                await addDocWithId('sales', sale.id, sale);
+            }
+
+            // Migrate purchases
+            for (const purchase of localPurchases) {
+                await addDocWithId('purchases', purchase.id, purchase);
+            }
+
+            localStorage.setItem('lababil-migration-done', 'true');
+            this.showNotification('Data migration completed!', 'success');
+        } catch (error) {
+            console.error('Migration error:', error);
+            this.showNotification('Migration failed, using local data', 'warning');
+        }
+    }
+
+    loadLocalFallbackData(type) {
+        try {
+            switch (type) {
+                case 'categories':
+                    this.categories = JSON.parse(localStorage.getItem('lababil-categories')) || ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
+                    break;
+                case 'products':
+                    this.products = JSON.parse(localStorage.getItem('lababil-products')) || [];
+                    break;
+                case 'sales':
+                    this.sales = JSON.parse(localStorage.getItem('lababil-sales')) || [];
+                    break;
+                case 'purchases':
+                    this.purchases = JSON.parse(localStorage.getItem('lababil-purchases')) || [];
+                    break;
+                case 'customers':
+                    this.customers = JSON.parse(localStorage.getItem('lababil-customers')) || [];
+                    break;
+                case 'settings':
+                    this.settings = { ...this.settings, ...JSON.parse(localStorage.getItem('lababil-settings') || '{}') };
+                    break;
+                default:
+                    // Load all data
+                    this.categories = JSON.parse(localStorage.getItem('lababil-categories')) || ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
+                    this.products = JSON.parse(localStorage.getItem('lababil-products')) || [];
+                    this.sales = JSON.parse(localStorage.getItem('lababil-sales')) || [];
+                    this.purchases = JSON.parse(localStorage.getItem('lababil-purchases')) || [];
+                    this.customers = JSON.parse(localStorage.getItem('lababil-customers')) || [];
+                    this.settings = { ...this.settings, ...JSON.parse(localStorage.getItem('lababil-settings') || '{}') };
+                    break;
+            }
+        } catch (error) {
+            console.error('Error loading local fallback data:', error);
+        }
+    }
+
     async init() {
         // Check Firebase configuration
         if (!isFirebaseConfigured()) {
@@ -57,7 +136,7 @@ class Dashboard {
         // Load data from Firestore with loading states
         this.showLoading('section-dashboard');
         await Promise.all([
-            this.loadCategories(),
+            this.loadCategoriesFromFirestore(),
             this.loadProducts(),
             this.loadSales(),
             this.loadPurchases(),
@@ -76,13 +155,15 @@ class Dashboard {
 
     async loadManagers() {
         try {
-            const [{ ProductManager }, { SalesManager }] = await Promise.all([
+            const [{ ProductManager }, { SalesManager }, { PurchaseManager }] = await Promise.all([
                 import('./products.js'),
-                import('./sales.js')
+                import('./sales.js'),
+                import('./purchases.js')
             ]);
 
             this.productManager = new ProductManager(this);
             this.salesManager = new SalesManager(this);
+            this.purchaseManager = new PurchaseManager(this);
         } catch (error) {
             console.error('Failed to load managers:', error);
             this.showNotification('Failed to load application modules', 'error');
@@ -112,6 +193,33 @@ class Dashboard {
             option.textContent = category;
             categorySelect.appendChild(option);
         });
+    }
+
+    async loadCategoriesFromFirestore() {
+        try {
+            const { success, data } = await getAllDocs('categories');
+            if (success && Array.isArray(data)) {
+                this.categories = data.map(doc => doc.name).sort();
+                // Fallback to localStorage if empty
+                if (this.categories.length === 0) {
+                    const localCategories = JSON.parse(localStorage.getItem('lababil-categories')) || ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports'];
+                    this.categories = localCategories;
+                }
+                this.loadCategories(); // Update the select
+                localStorage.setItem('lababil-categories', JSON.stringify(this.categories)); // Cache for offline
+            } else {
+                console.warn('Failed to load categories from Firestore, using local fallback');
+                this.loadLocalFallbackData('categories');
+            }
+        } catch (error) {
+            console.error('Error loading categories:', error);
+            this.showNotification('Failed to load categories', 'error');
+            this.loadLocalFallbackData('categories');
+        }
+    }
+
+    updateCategorySelect() {
+        this.loadCategories(); // Reuse existing method to update select
     }
 
     updateUserInfo() {
@@ -232,7 +340,7 @@ class Dashboard {
         selects.forEach(select => {
             const currentValue = select.value;
             select.innerHTML = '<option value="">Select Product</option>';
-            
+
             this.products.forEach(product => {
                 const option = document.createElement('option');
                 option.value = product.id;
@@ -240,30 +348,226 @@ class Dashboard {
                 option.dataset.price = product.price;
                 select.appendChild(option);
             });
-            
+
             select.value = currentValue;
         });
     }
 
+    async loadSales() {
+        try {
+            const { success, data } = await getAllDocs('sales');
+            if (success && Array.isArray(data)) {
+                this.sales = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Fallback to localStorage if empty
+                if (this.sales.length === 0) {
+                    const localSales = JSON.parse(localStorage.getItem('lababil-sales')) || [];
+                    this.sales = localSales;
+                }
+                localStorage.setItem('lababil-sales', JSON.stringify(this.sales)); // Cache for offline
+            } else {
+                console.warn('Failed to load sales from Firestore, using local fallback');
+                this.loadLocalFallbackData('sales');
+            }
+        } catch (error) {
+            console.error('Error loading sales:', error);
+            this.showNotification('Failed to load sales', 'error');
+            this.loadLocalFallbackData('sales');
+        }
+    }
 
+    async loadPurchases() {
+        try {
+            const { success, data } = await getAllDocs('purchases');
+            if (success && Array.isArray(data)) {
+                this.purchases = data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                // Fallback to localStorage if empty
+                if (this.purchases.length === 0) {
+                    const localPurchases = JSON.parse(localStorage.getItem('lababil-purchases')) || [];
+                    this.purchases = localPurchases;
+                }
+                localStorage.setItem('lababil-purchases', JSON.stringify(this.purchases)); // Cache for offline
+            } else {
+                console.warn('Failed to load purchases from Firestore, using local fallback');
+                this.loadLocalFallbackData('purchases');
+            }
+        } catch (error) {
+            console.error('Error loading purchases:', error);
+            this.showNotification('Failed to load purchases', 'error');
+            this.loadLocalFallbackData('purchases');
+        }
+    }
 
+    loadRecentSales() {
+        const recentSalesContainer = document.getElementById('recentSalesList');
+        if (!recentSalesContainer) return;
 
+        const recentSales = this.sales.slice(0, 5); // Last 5 sales
+        recentSalesContainer.innerHTML = '';
 
+        if (recentSales.length === 0) {
+            recentSalesContainer.innerHTML = '<p class="text-gray-500">No recent sales</p>';
+            return;
+        }
 
+        recentSales.forEach(sale => {
+            const saleDiv = document.createElement('div');
+            saleDiv.className = 'bg-white p-4 rounded-lg shadow-sm border';
+            saleDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold text-gray-900">${sale.customer}</h4>
+                        <p class="text-sm text-gray-600">${sale.date}</p>
+                        <p class="text-sm text-gray-600">${sale.items.length} item(s)</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-green-600">${this.formatCurrency(sale.total)}</p>
+                        <button onclick="printReceipt('${sale.id}')" class="text-xs text-blue-600 hover:text-blue-800">Print</button>
+                    </div>
+                </div>
+            `;
+            recentSalesContainer.appendChild(saleDiv);
+        });
+    }
 
+    loadRecentPurchases() {
+        const recentPurchasesContainer = document.getElementById('recentPurchasesList');
+        if (!recentPurchasesContainer) return;
 
+        const recentPurchases = this.purchases.slice(0, 5); // Last 5 purchases
+        recentPurchasesContainer.innerHTML = '';
 
+        if (recentPurchases.length === 0) {
+            recentPurchasesContainer.innerHTML = '<p class="text-gray-500">No recent purchases</p>';
+            return;
+        }
 
+        recentPurchases.forEach(purchase => {
+            const purchaseDiv = document.createElement('div');
+            purchaseDiv.className = 'bg-white p-4 rounded-lg shadow-sm border';
+            purchaseDiv.innerHTML = `
+                <div class="flex justify-between items-start">
+                    <div>
+                        <h4 class="font-semibold text-gray-900">${purchase.supplier}</h4>
+                        <p class="text-sm text-gray-600">${purchase.date}</p>
+                        <p class="text-sm text-gray-600">${purchase.items.length} item(s)</p>
+                    </div>
+                    <div class="text-right">
+                        <p class="font-bold text-blue-600">${this.formatCurrency(purchase.totalCost)}</p>
+                    </div>
+                </div>
+            `;
+            recentPurchasesContainer.appendChild(purchaseDiv);
+        });
+    }
 
+    async saveSale(sale) {
+        try {
+            const { success } = await addDocWithId('sales', sale.id, sale);
+            if (success) {
+                this.sales.unshift(sale); // Add to beginning of array
+                // Update product stock
+                sale.items.forEach(item => {
+                    const product = this.products.find(p => p.id === item.productId);
+                    if (product) {
+                        product.stock -= item.qty;
+                    }
+                });
+                this.saveDataToStorage();
+                this.showNotification('Sale saved successfully!', 'success');
+                return true;
+            } else {
+                throw new Error('Failed to save to Firestore');
+            }
+        } catch (error) {
+            console.error('Error saving sale:', error);
+            this.showNotification('Failed to save sale', 'error');
+            return false;
+        }
+    }
 
+    async savePurchase(purchase) {
+        try {
+            const { success } = await addDocWithId('purchases', purchase.id, purchase);
+            if (success) {
+                this.purchases.unshift(purchase); // Add to beginning of array
+                // Update product stock
+                purchase.items.forEach(item => {
+                    const product = this.products.find(p => p.id === item.productId);
+                    if (product) {
+                        product.stock += item.qty;
+                    }
+                });
+                this.saveDataToStorage();
+                this.showNotification('Purchase saved successfully!', 'success');
+                return true;
+            } else {
+                throw new Error('Failed to save to Firestore');
+            }
+        } catch (error) {
+            console.error('Error saving purchase:', error);
+            this.showNotification('Failed to save purchase', 'error');
+            return false;
+        }
+    }
 
+    validatePurchaseData(supplierName, items) {
+        if (!supplierName || supplierName.trim().length < 2) return 'Supplier name must be at least 2 characters';
+        if (items.length === 0) return 'Add at least one item';
+        for (let item of items) {
+            if (item.qty <= 0) return 'Invalid quantity';
+            if (item.costPrice <= 0) return 'Invalid cost price';
+        }
+        return null;
+    }
 
+    updateTotals() {
+        if (this.salesManager) {
+            this.salesManager.updateSaleTotal();
+        }
+        if (this.purchaseManager) {
+            this.purchaseManager.updatePurchaseTotal();
+        }
+    }
 
+    async loadCustomers() {
+        try {
+            const { success, data } = await getAllDocs('customers');
+            if (success && Array.isArray(data)) {
+                this.customers = data.sort((a, b) => a.name.localeCompare(b.name));
+                // Fallback to localStorage if empty
+                if (this.customers.length === 0) {
+                    const localCustomers = JSON.parse(localStorage.getItem('lababil-customers')) || [];
+                    this.customers = localCustomers;
+                }
+                localStorage.setItem('lababil-customers', JSON.stringify(this.customers)); // Cache for offline
+            } else {
+                console.warn('Failed to load customers from Firestore, using local fallback');
+                this.loadLocalFallbackData('customers');
+            }
+        } catch (error) {
+            console.error('Error loading customers:', error);
+            this.showNotification('Failed to load customers', 'error');
+            this.loadLocalFallbackData('customers');
+        }
+    }
 
-
-
-
-
+    async loadSettings() {
+        try {
+            const { success, data } = await getAllDocs('settings');
+            if (success && Array.isArray(data) && data.length > 0) {
+                // Assuming settings is stored as a single document, take the first one
+                this.settings = { ...this.settings, ...data[0] };
+                localStorage.setItem('lababil-settings', JSON.stringify(this.settings)); // Cache for offline
+            } else {
+                console.warn('Failed to load settings from Firestore, using local fallback');
+                this.loadLocalFallbackData('settings');
+            }
+        } catch (error) {
+            console.error('Error loading settings:', error);
+            this.showNotification('Failed to load settings', 'error');
+            this.loadLocalFallbackData('settings');
+        }
+    }
 
     printReceipt(saleId) {
         const sale = this.sales.find(s => s.id === saleId);
@@ -505,6 +809,21 @@ class Dashboard {
                 }
             }
         });
+
+        // Firestore real-time listener for categories
+        const categoriesRef = getCollectionRef('categories');
+        if (categoriesRef) {
+            const unsubscribeCategories = onSnapshot(categoriesRef, (snapshot) => {
+                const categories = [];
+                snapshot.forEach((doc) => {
+                    categories.push(doc.data().name);
+                });
+                this.categories = categories.sort();
+                this.updateCategorySelect();
+                localStorage.setItem('lababil-categories', JSON.stringify(this.categories));
+            });
+            this.unsubscribers.push(unsubscribeCategories);
+        }
 
         // Save data to localStorage on changes
         this.saveDataToStorage = () => {
