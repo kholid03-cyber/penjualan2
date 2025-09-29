@@ -48,28 +48,21 @@ class LoginManager {
 
         // Validate input
         if (!username || !password) {
-            this.showError('Silakan masukkan email dan password.');
+            this.showError('Silakan masukkan username dan password.');
             return;
-        }
-
-        // For demo purposes, convert username to email format if needed
-        let email = username;
-        if (!email.includes('@')) {
-            // Convert demo usernames to email format
-            email = `${username}@lababil.com`;
         }
 
         // Set loading state
         this.setLoading(true);
 
         try {
-            // Check if Firebase Auth is ready
+            // Check if Auth is ready
             if (!window.auth || typeof window.auth.signIn !== 'function') {
-                throw new Error('Sistem autentikasi belum siap. Pastikan konfigurasi Firebase sudah benar dan refresh halaman.');
+                throw new Error('Sistem autentikasi belum siap. Silakan refresh halaman.');
             }
 
-            // Use Firebase Authentication
-            const result = await window.auth.signIn(email, password);
+            // Use local authentication via Netlify function
+            const result = await window.auth.signIn(username, password);
 
             if (result.success) {
                 // Show success message
@@ -78,7 +71,7 @@ class LoginManager {
                 // Clear form
                 this.clearForm();
 
-                // Firebase will automatically redirect via auth state listener
+                // Auth manager will automatically redirect
 
             } else {
                 throw new Error(result.error || 'Login gagal');
@@ -91,6 +84,7 @@ class LoginManager {
             this.setLoading(false);
         }
     }
+
 
     // Set loading state
     setLoading(loading) {
@@ -378,3 +372,4 @@ document.addEventListener('DOMContentLoaded', () => {
 
     console.log('Lababil Sales System v2.0 initialized');
 });
+
