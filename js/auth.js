@@ -1,26 +1,34 @@
-// Temporarily use local auth until Firebase is configured
-// import { auth } from './firebase.js';
-// import {
-//     signInWithEmailAndPassword,
-//     signOut,
-//     onAuthStateChanged,
-//     createUserWithEmailAndPassword,
-//     updateProfile
-// } from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
+import { auth } from './firebase.js';
+import {
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged,
+    createUserWithEmailAndPassword,
+    updateProfile
+} from 'https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js';
 
 class AuthManager {
     constructor() {
         this.currentUser = null;
-        this.isReady = true; // Local auth is always ready
-        this.loadUserFromStorage();
+        this.isReady = false;
+        this.initAuthListener();
     }
 
-    // Load user from localStorage on init
-    loadUserFromStorage() {
-        const userData = localStorage.getItem('userData');
-        if (userData) {
-            this.currentUser = JSON.parse(userData);
-        }
+    // Initialize Firebase Auth state listener
+    initAuthListener() {
+        onAuthStateChanged(auth, (user) => {
+            this.currentUser = user;
+            this.isReady = true;
+            if (user) {
+                // User is signed in
+                console.log('User signed in:', user.email);
+                this.handleAuthSuccess(user);
+            } else {
+                // User is signed out
+                console.log('User signed out');
+                this.handleAuthSignOut();
+            }
+        });
     }
 
     // Handle successful authentication
@@ -61,39 +69,14 @@ class AuthManager {
         return 'user'; // Default role
     }
 
-    // Sign in with username and password using Netlify function
-    async signIn(username, password) {
+    // Sign in with email and password
+    async signIn(email, password) {
         try {
-            const response = await fetch('/.netlify/functions/login', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ username, password })
-            });
-
-            const data = await response.json();
-
-            if (data.success) {
-                // Create user object from response
-                const user = {
-                    uid: data.user.username,
-                    email: data.user.username + '@local.auth',
-                    displayName: data.user.name,
-                    role: data.user.role,
-                    token: data.token,
-                    loginTime: new Date().toISOString()
-                };
-
-                this.currentUser = user;
-                this.handleAuthSuccess(user);
-                return { success: true, user: user };
-            } else {
-                return { success: false, error: data.error || 'Login failed' };
-            }
+            const userCredential = await signInWithEmailAndPassword(auth, email, password);
+            return { success: true, user: userCredential.user };
         } catch (error) {
             console.error('Sign in error:', error);
-            return { success: false, error: 'Network error. Please check your connection.' };
+            return { success: false, error: this.getErrorMessage(error.code) };
         }
     }
 
@@ -113,9 +96,7 @@ class AuthManager {
     // Sign out
     async logout() {
         try {
-            this.currentUser = null;
-            localStorage.removeItem('userData');
-            this.handleAuthSignOut();
+            await signOut(auth);
             return { success: true };
         } catch (error) {
             console.error('Sign out error:', error);
