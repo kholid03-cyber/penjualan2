@@ -1,3 +1,5 @@
+import { getAllDocs, addDocWithId } from './firebase.js';
+
 // js/products.js - Product management module
 
 export class ProductManager {
@@ -68,23 +70,47 @@ export class ProductManager {
         }
     }
 
-    addCategory() {
+    async addCategory() {
         const newCategoryName = prompt('Enter new category name:');
         if (!newCategoryName || newCategoryName.trim() === '') {
             this.dashboard.showNotification('Category name cannot be empty', 'error');
             return;
         }
         const trimmedName = newCategoryName.trim();
-        if (this.dashboard.categories.includes(trimmedName)) {
-            this.dashboard.showNotification('Category already exists', 'error');
-            return;
-        }
 
-        // Add to categories array and save to Firestore
-        this.dashboard.categories.push(trimmedName);
-        this.saveCategoriesToFirestore();
-        this.dashboard.updateCategorySelect();
-        this.dashboard.showNotification('Category added successfully!', 'success');
+        try {
+            // Fetch existing categories from Firestore for uniqueness check
+            const { success, data: existingCategories } = await getAllDocs('categories');
+            if (!success) {
+                throw new Error('Failed to fetch categories');
+            }
+
+            const categoryNames = existingCategories.map(cat => cat.name.toLowerCase());
+            if (categoryNames.includes(trimmedName.toLowerCase())) {
+                this.dashboard.showNotification('Category already exists', 'error');
+                return;
+            }
+
+            // Generate unique ID for new category
+            const categoryId = Date.now().toString();
+
+            // Add new category to Firestore
+            const addResult = await addDocWithId('categories', categoryId, { name: trimmedName });
+            if (!addResult.success) {
+                throw new Error('Failed to add category');
+            }
+
+            // Update local categories array
+            this.dashboard.categories.push({ id: categoryId, name: trimmedName });
+            this.dashboard.localCache.categories = [...this.dashboard.categories];
+
+            // Update UI
+            this.dashboard.updateCategorySelect();
+            this.dashboard.showNotification('Category added successfully!', 'success');
+        } catch (error) {
+            console.error('Error adding category:', error);
+            this.dashboard.showNotification('Error adding category', 'error');
+        }
     }
 
     async saveCategoriesToFirestore() {
