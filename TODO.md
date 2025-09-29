@@ -1,43 +1,50 @@
-y# Lababil Sales System Dashboard Fixes - TODO
+# Lababil Sales System - TODO List
 
-## Overview
-This TODO tracks implementation of fixes for dashboard issues:
-- Enable manual price editing in sales.
-- Add cost price input in purchases, update product costPrice, calculate monetary totals.
-- Add profit calculation in reports (revenue - COGS using costPrice).
-- Enable dynamic category addition in add product modal.
+## Current Status
+- [x] Setup Firebase Auth integration (js/firebase.js, js/auth.js, js/main.js)
+- [x] Basic login testing via browser (login page loads, form visible)
 
-## Steps
+## Firebase Migration & TODO Fixes (New Implementation Plan)
+This section tracks the full Firebase migration and fixes for original TODO items. Steps will be marked as completed progressively.
 
-### 1. Update UI in admin-dashboard.html
-- [x] Remove 'readonly' from sales price input.
-- [x] Add cost price input to purchase item grid (make 4 columns: product, qty, cost price, remove).
-- [x] Update purchase total display to "Total Cost: Rp <span id='purchaseTotal'>0</span>".
-- [x] Add profit card in reports section: New div with classes matching others, e.g., <div class="bg-white shadow rounded-lg p-6 profit-card"><h3 class="text-lg font-medium text-gray-900 mb-4">Total Profit</h3><div class="text-3xl font-bold text-green-600 profit-value">Rp 0</div><p class="text-sm text-gray-500">Overall profit (Revenue - COGS)</p></div>.
-- [x] In add product modal: Add button after category select: <button type="button" onclick="addCategory()" class="text-sm text-blue-600 hover:text-blue-800">+ Add New Category</button>. Ensure category select is dynamic.
+### Phase 1: Firebase Setup & Core Migration
+- [x] **Step 1.1**: Update js/firebase.js - Add Firestore imports, helper functions for CRUD (getCollectionRef, addDocWithId, etc.), and one-time migration function.
+- [x] **Step 1.2**: Test Firebase helpers - Verify Firestore connection and basic read/write via console or browser tool.
+- [x] **Step 1.3**: Migrate data models in js/dashboard.js - Replace localStorage with Firestore for products, sales, purchases, categories, customers, settings. Add offline fallback.
+- [x] **Step 1.4**: Implement one-time data migration - Run script to sync existing localStorage data to Firestore collections.
+- [x] **Step 1.5**: Update init() in js/dashboard.js - Load data from Firestore on dashboard load, handle errors.
+- [x] **Step 1.6**: Update managers (products.js, sales.js, purchases.js) - Replace localStorage operations with Firebase methods.
 
-### 2. Update Logic in js/dashboard.js
-- [x] Add this.categories = ['Electronics', 'Clothing', 'Books', 'Home & Garden', 'Sports']; in constructor.
-- [x] Add addCategory() method: Prompt/input for name, validate (non-empty, unique), push to categories, update modal select options, save to localStorage.
-- [x] In updateProductSelects(): No change, but for categories, add loadCategories() to populate modal select on init and after add.
-- [x] In addPurchaseItem(): Update HTML grid to md:grid-cols-4, add <input type="number" placeholder="Cost Price" class="cost-price-input border-gray-300 rounded-md" min="0" value="0"> before remove button.
-- [x] In handleNewPurchase(): For each item, product.costPrice = Math.max(item.costPrice, product.costPrice || 0); // Use new if higher or set if none. totalCost = sum(qty * costPrice), add to newPurchase.totalCost. Update display: document.getElementById('purchaseTotal').textContent = this.formatCurrency(totalCost);
-- [x] In updatePurchaseTotal(): Collect items with costPrice, sum(qty * costPrice), formatCurrency.
-- [x] In updateProductPrice() for sales: Set initial price but allow edit (already via input).
-- [x] In loadReports(): Calculate totalCOGS = 0; this.sales.forEach(sale => sale.items.forEach(item => { const product = this.products.find(p => p.name === item.name); if (product) totalCOGS += item.qty * (product.costPrice || 0); })); const profit = totalRevenue - totalCOGS; Then document.querySelector('.profit-value').textContent = this.formatCurrency(profit);
-- [x] In setupRealTimeSync() and saveDataToStorage(): Include categories in data.
-- [x] In handleAddProduct(): Set newProduct.category from select.value; if new category added, ensure it's in list.
+### Phase 2: Fix Original TODO Items
+- [x] **Step 2.1**: Fix Manual Price Editing in Sales - Update js/sales.js to allow dynamic price input, remove readonly from HTML, recalculate totals.
+- [x] **Step 2.2**: Fix Cost Price Input in Purchases - Add costPrice input to admin-dashboard.html (purchases section), update js/purchases.js to save to products via Firestore.
+- [x] **Step 2.3**: Fix Profit Calculation in Reports - Add calculateProfit() in js/dashboard.js using Firestore data, update reports UI to show profit metrics.
+- [x] **Step 2.4**: Fix Dynamic Categories - Add "+ Add Category" button to product modal in admin-dashboard.html, update js/products.js to save/load from Firestore 'categories' collection.
+  - [x] Sub-step 2.4.1: Update js/dashboard.js - Add loadCategoriesFromFirestore() and updateCategorySelect() methods.
+  - [x] Sub-step 2.4.2: Update js/products.js - Make addCategory() async with Firestore uniqueness check, expose as global window.addCategory.
+  - [ ] Sub-step 2.4.3: Test dynamic category addition and selection in modal.
+  - [ ] Sub-step 2.4.4: Verify real-time updates and error handling.
 
-### 3. Testing
-- [ ] Purchases: Add item with cost, process – verify stock += qty, costPrice updated, totalCost correct.
-- [ ] Sales: Select product, edit price/qty, process – verify total uses edited values, stock -= qty.
-- [ ] Reports: Simulate buy (set costPrice), sell – verify profit = sum(sell prices) - sum(qty * costPrice).
-- [ ] Categories: Click add, enter new, select for product – verify saves, appears in future selects.
-- [ ] Edges: Negative cost/price (prevent via min=0), insufficient stock (already in validateSaleData), duplicate categories (check uniqueness).
+### Phase 3: Auth & Security Enhancements
+- [ ] **Step 3.1**: Update js/auth.js - Sync user role to Firestore document after login, add requireAuth() with Firestore role check.
+- [ ] **Step 3.2**: Secure admin-only features - Add role checks in dashboard sections (e.g., purchases for admin only).
 
-### 4. Verification
-- [ ] Use browser_action to launch admin-dashboard.html, login as admin, test each section.
-- [ ] Check localStorage for saved data including categories.
-- [ ] Update TODO.md as steps complete.
+### Phase 4: Testing & Finalization
+- [ ] **Step 4.1**: Critical-path testing - Test login, CRUD operations (add/edit/delete product/sale/purchase), real-time sync via browser tool.
+- [ ] **Step 4.2**: Thorough testing - Test offline mode, error scenarios, multi-user (if possible), role restrictions.
+- [ ] **Step 4.3**: Update this TODO.md - Mark all steps as [x], add new TODOs for future features (e.g., offline sync, data export).
+- [ ] **Step 4.4**: Deployment & Verification - Commit changes, deploy to Netlify, test production URL.
 
-Last updated: Current session
+## Original TODO Items (Marked for Reference)
+- [ ] Manual editing harga di sales (sekarang di Phase 2.1)
+- [ ] Input cost price di purchases (sekarang di Phase 2.2)
+- [ ] Perhitungan profit di reports (sekarang di Phase 2.3)
+- [ ] Dynamic category addition (sekarang di Phase 2.4)
+
+## Notes
+- **Dependencies**: Semua changes pakai existing Firebase SDK (no new installs).
+- **Testing Approach**: Gunakan browser_action tool untuk live testing setelah setiap phase.
+- **Risks**: Data migration one-time - backup localStorage dulu. Firestore rules perlu di-set allow read/write authenticated users.
+- **Estimated Time**: 2-3 phases per session, full completion dalam 4-5 interactions.
+
+Progress will be updated after each completed step.
