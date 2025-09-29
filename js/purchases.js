@@ -101,6 +101,9 @@ export class PurchaseManager {
 
         purchaseItemsContainer.appendChild(itemDiv);
         this.dashboard.productManager.updateProductSelects();
+
+        // Add event listeners for dynamic total updates
+        this.addDynamicUpdateListeners(itemDiv);
     }
 
     resetPurchaseItems() {
@@ -128,6 +131,26 @@ export class PurchaseManager {
         // If sales manager exists, update sale total too
         if (this.dashboard.salesManager) {
             this.dashboard.salesManager.updateSaleTotal();
+        }
+    }
+
+    addDynamicUpdateListeners(itemDiv) {
+        const costInput = itemDiv.querySelector('.cost-price-input');
+        const qtyInput = itemDiv.querySelector('.quantity-input');
+
+        if (costInput) {
+            costInput.addEventListener('input', () => this.updatePurchaseTotal());
+        }
+        if (qtyInput) {
+            qtyInput.addEventListener('input', () => this.updatePurchaseTotal());
+        }
+    }
+
+    removePurchaseItem(button) {
+        const itemDiv = button.closest('.purchase-item');
+        if (itemDiv) {
+            itemDiv.remove();
+            this.updatePurchaseTotal();
         }
     }
 }
