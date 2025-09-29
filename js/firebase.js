@@ -38,6 +38,8 @@ export const realtimeDb = getDatabase(app);
 
 export default app;
 
+// ... (sisa kode helper functions tetap sama)
+
 // Firestore Helper Functions
 export function getCollectionRef(collectionName) {
   return collection(db, collectionName);
@@ -138,3 +140,4 @@ export function isFirebaseConfigured() {
   return firebaseConfig.apiKey !== "YOUR_API_KEY_HERE" &&
          firebaseConfig.projectId !== "YOUR_PROJECT_ID";
 }
+
