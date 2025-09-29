@@ -5,58 +5,8 @@ export class ProductManager {
         this.dashboard = dashboard;
     }
 
-    loadProducts(page = 1, limit = 10) {
-        const tbody = document.getElementById('productsTableBody');
-        if (!tbody) return;
-
-        const startIndex = (page - 1) * limit;
-        const endIndex = startIndex + limit;
-        const productsToShow = this.dashboard.products.slice(startIndex, endIndex);
-
-        if (page === 1) {
-            tbody.innerHTML = '';
-        }
-
-        productsToShow.forEach(product => {
-            const row = document.createElement('tr');
-            row.innerHTML = `
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <div class="font-medium text-gray-900">${product.name}</div>
-                    <div class="text-sm text-gray-500">ID: ${product.id}</div>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                    ${this.dashboard.formatCurrency(product.price)}
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap">
-                    <span class="inline-flex px-2 py-1 text-xs font-semibold rounded-full ${product.stock > 10 ? 'bg-green-100 text-green-800' : product.stock > 5 ? 'bg-yellow-100 text-yellow-800' : 'bg-red-100 text-red-800'}">
-                        ${product.stock} units
-                    </span>
-                </td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-900">${product.category}</td>
-                <td class="px-6 py-4 whitespace-nowrap text-sm font-medium">
-                    <button onclick="editProduct(${product.id})" class="text-indigo-600 hover:text-indigo-900 mr-4">Edit</button>
-                    <button onclick="deleteProduct(${product.id})" class="text-red-600 hover:text-red-900">Delete</button>
-                </td>
-            `;
-            tbody.appendChild(row);
-        });
-
-        // Add Load More button if more products exist
-        if (endIndex < this.dashboard.products.length) {
-            const loadMoreRow = document.createElement('tr');
-            loadMoreRow.innerHTML = `
-                <td colspan="5" class="px-6 py-4 text-center">
-                    <button id="loadMoreProducts" class="bg-blue-600 text-white px-4 py-2 rounded-md hover:bg-blue-700" onclick="loadMoreProducts(${page + 1})">
-                        Load More Products
-                    </button>
-                </td>
-            `;
-            tbody.appendChild(loadMoreRow);
-        }
-
-        // Update product selects in sale form
-        this.updateProductSelects();
-    }
+    // Note: loadProducts is now handled by dashboard.renderProductsTable for real-time updates
+    // This method is kept for backward compatibility but uses dashboard methods
 
     updateProductSelects() {
         const selects = document.querySelectorAll('.product-select');
@@ -76,49 +26,46 @@ export class ProductManager {
         });
     }
 
-    handleAddProduct(e) {
+    async handleAddProduct(e) {
         e.preventDefault();
 
         const form = e.target;
-        const formData = new FormData(form);
 
         const name = document.getElementById('productName').value.trim();
-        const price = parseInt(document.getElementById('productPrice').value);
+        const price = parseFloat(document.getElementById('productPrice').value);
+        const costPrice = parseFloat(document.getElementById('productCostPrice')?.value || 0);
         const stock = parseInt(document.getElementById('productStock').value);
         const category = document.getElementById('productCategory').value;
+        const minStock = parseInt(document.getElementById('productMinStock')?.value || 5);
+        const supplier = document.getElementById('productSupplier')?.value || '';
 
-        const validationError = this.validateProductData(name, price, stock, category);
+        const validationError = this.dashboard.validateProductData(name, price, stock, category, costPrice);
         if (validationError) {
             this.dashboard.showNotification(validationError, 'error');
             return;
         }
 
+        // Generate unique ID
+        const id = Date.now().toString();
+
         const newProduct = {
-            id: this.dashboard.products.length + 1,
+            id: id,
             name: name,
             price: price,
-            costPrice: 0,
+            costPrice: costPrice,
             stock: stock,
             category: category,
-            minStock: 5,
-            supplier: ''
+            minStock: minStock,
+            supplier: supplier,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
         };
 
-        this.dashboard.products.push(newProduct);
-        this.loadProducts(); // Reload with pagination
-        this.dashboard.hideAddProductModal();
-        form.reset();
-
-        this.dashboard.showNotification('Product added successfully!', 'success');
-        this.dashboard.saveDataToStorage();
-    }
-
-    validateProductData(name, price, stock, category) {
-        if (!name || name.trim().length < 2) return 'Product name must be at least 2 characters';
-        if (price <= 0) return 'Price must be greater than 0';
-        if (stock < 0) return 'Stock cannot be negative';
-        if (!category) return 'Please select a category';
-        return null;
+        const success = await this.dashboard.saveProduct(newProduct);
+        if (success) {
+            this.dashboard.hideAddProductModal();
+            form.reset();
+        }
     }
 
     addCategory() {
@@ -132,9 +79,105 @@ export class ProductManager {
             this.dashboard.showNotification('Category already exists', 'error');
             return;
         }
+
+        // Add to categories array and save to Firestore
         this.dashboard.categories.push(trimmedName);
-        localStorage.setItem('lababil-categories', JSON.stringify(this.dashboard.categories));
-        this.dashboard.loadCategories();
+        this.saveCategoriesToFirestore();
+        this.dashboard.updateCategorySelect();
         this.dashboard.showNotification('Category added successfully!', 'success');
+    }
+
+    async saveCategoriesToFirestore() {
+        try {
+            // Save categories as documents in categories collection
+            const batch = [];
+            this.dashboard.categories.forEach((category, index) => {
+                batch.push(addDocWithId('categories', `cat_${index}`, { name: category }));
+            });
+
+            // Execute batch
+            await Promise.all(batch);
+            this.dashboard.localCache.categories = [...this.dashboard.categories];
+            localStorage.setItem('lababil-categories', JSON.stringify(this.dashboard.categories));
+        } catch (error) {
+            console.error('Error saving categories:', error);
+            this.dashboard.showNotification('Error saving category to database', 'error');
+        }
+    }
+
+    async editProduct(productId) {
+        const product = this.dashboard.products.find(p => p.id === productId);
+        if (!product) {
+            this.dashboard.showNotification('Product not found', 'error');
+            return;
+        }
+
+        // Populate edit form (assuming there's an edit modal)
+        const editModal = document.getElementById('editProductModal');
+        if (!editModal) {
+            this.dashboard.showNotification('Edit functionality not implemented yet', 'warning');
+            return;
+        }
+
+        // Populate form fields
+        document.getElementById('editProductId').value = product.id;
+        document.getElementById('editProductName').value = product.name;
+        document.getElementById('editProductPrice').value = product.price;
+        document.getElementById('editProductCostPrice').value = product.costPrice || 0;
+        document.getElementById('editProductStock').value = product.stock;
+        document.getElementById('editProductCategory').value = product.category;
+        document.getElementById('editProductMinStock').value = product.minStock || 5;
+        document.getElementById('editProductSupplier').value = product.supplier || '';
+
+        // Show modal
+        editModal.classList.remove('hidden');
+        editModal.classList.add('flex');
+    }
+
+    async handleEditProduct(e) {
+        e.preventDefault();
+
+        const id = document.getElementById('editProductId').value;
+        const name = document.getElementById('editProductName').value.trim();
+        const price = parseFloat(document.getElementById('editProductPrice').value);
+        const costPrice = parseFloat(document.getElementById('editProductCostPrice').value || 0);
+        const stock = parseInt(document.getElementById('editProductStock').value);
+        const category = document.getElementById('editProductCategory').value;
+        const minStock = parseInt(document.getElementById('editProductMinStock').value || 5);
+        const supplier = document.getElementById('editProductSupplier').value || '';
+
+        const validationError = this.dashboard.validateProductData(name, price, stock, category, costPrice);
+        if (validationError) {
+            this.dashboard.showNotification(validationError, 'error');
+            return;
+        }
+
+        const updatedProduct = {
+            id: id,
+            name: name,
+            price: price,
+            costPrice: costPrice,
+            stock: stock,
+            category: category,
+            minStock: minStock,
+            supplier: supplier,
+            updatedAt: new Date().toISOString()
+        };
+
+        const success = await this.dashboard.updateProduct(id, updatedProduct);
+        if (success) {
+            document.getElementById('editProductModal').classList.add('hidden');
+            document.getElementById('editProductModal').classList.remove('flex');
+            e.target.reset();
+        }
+    }
+
+    async deleteProduct(productId) {
+        if (!confirm('Are you sure you want to delete this product?')) return;
+
+        const success = await this.dashboard.deleteProduct(productId);
+        if (success) {
+            // Product deletion is handled by the real-time listener in dashboard
+        }
     }
 }
